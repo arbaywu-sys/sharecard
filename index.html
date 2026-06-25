@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>推薦分享卡產生工具</title>
 <style>
+  @font-face {
+    font-family: 'Iansui';
+    src: url('Iansui-Regular.ttf') format('truetype');
+    font-display: swap;
+  }
+</style>
+<style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
@@ -96,20 +103,34 @@
 <script>
   const bgImage = new Image();
   let imageReady = false;
+  let fontReady = false;
+
+  function maybeEnableButton() {
+    if (imageReady && fontReady) {
+      const btn = document.getElementById('genBtn');
+      btn.disabled = false;
+      btn.textContent = '產生';
+      drawBase();
+    }
+  }
 
   bgImage.onload = function() {
     imageReady = true;
-    const btn = document.getElementById('genBtn');
-    btn.disabled = false;
-    btn.textContent = '產生';
-    // 先畫一次空白版底圖讓使用者預覽
-    drawBase();
+    maybeEnableButton();
   };
   bgImage.onerror = function() {
     const btn = document.getElementById('genBtn');
     btn.textContent = '底圖載入失敗，請確認 card-bg.png 是否放在同一資料夾';
   };
   bgImage.src = 'card-bg.png';
+
+  document.fonts.load('112px "Iansui"').then(function() {
+    fontReady = true;
+    maybeEnableButton();
+  }).catch(function() {
+    fontReady = true; // 字體載入失敗也放行，自動改用備援字體（PingFang TC / Noto Sans CJK TC）
+    maybeEnableButton();
+  });
 
   function drawBase() {
     const canvas = document.getElementById('cardCanvas');
@@ -122,7 +143,61 @@
   const BOX = { left: 201, right: 862, top: 407, bottom: 581 };
   const BOX_CENTER_X = (BOX.left + BOX.right) / 2;
   const BOX_CENTER_Y = (BOX.top + BOX.bottom) / 2;
-  const BOX_MAX_WIDTH = (BOX.right - BOX.left) * 0.85; // 留一點邊距，避免貼框
+  const BOX_MAX_WIDTH = (BOX.right - BOX.left) * 0.78;   // 寬度上限
+  const BOX_MAX_HALF_HEIGHT = 52;                         // 高度上限，避免壓到底圖右下角「Excursion Orthotix」字樣
+
+  // 字體後備順序（防呆）：芫荽體沒有的字，自動換下一個字體顯示，不會出現缺字方框
+  const FONT_STACK = '"Iansui", "PingFang TC", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif';
+
+  function measureName(ctx, name, size) {
+    ctx.font = `${size}px ${FONT_STACK}`;
+    const spacing = size * 0.30;
+    let total = 0;
+    let halfHeight = 0;
+    for (const ch of name) {
+      const m = ctx.measureText(ch);
+      total += m.width;
+      const asc = m.actualBoundingBoxAscent || size * 0.38;
+      const desc = m.actualBoundingBoxDescent || size * 0.38;
+      halfHeight = Math.max(halfHeight, asc, desc);
+    }
+    total += spacing * (name.length - 1);
+    return { total, halfHeight, spacing };
+  }
+
+  function drawNameOnCanvas(ctx, name) {
+    let fontSize = 150;
+    const minFontSize = 30;
+    let m = measureName(ctx, name, fontSize);
+
+    while (fontSize > minFontSize && (m.total > BOX_MAX_WIDTH || m.halfHeight > BOX_MAX_HALF_HEIGHT)) {
+      fontSize -= 2;
+      m = measureName(ctx, name, fontSize);
+    }
+
+    ctx.font = `${fontSize}px ${FONT_STACK}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    // 柔和陰影（輕微立體感，避免太重）
+    ctx.shadowColor = 'rgba(80,55,25,0.35)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = '#8B652E'; // 古銅金
+
+    let x = BOX_CENTER_X - m.total / 2;
+    for (const ch of name) {
+      ctx.fillText(ch, x, BOX_CENTER_Y);
+      x += ctx.measureText(ch).width + m.spacing;
+    }
+
+    // 重設陰影，避免影響後續繪製
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
 
   function generateCard() {
     if (!imageReady) return;
@@ -131,19 +206,7 @@
     const ctx = canvas.getContext('2d');
 
     drawBase();
-
-    // 自動依文字長度縮小字級，避免長名字超出空白框
-    let fontSize = 60;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `bold ${fontSize}px sans-serif`;
-    while (ctx.measureText(name).width > BOX_MAX_WIDTH && fontSize > 24) {
-      fontSize -= 2;
-      ctx.font = `bold ${fontSize}px sans-serif`;
-    }
-
-    ctx.fillStyle = '#173821'; // 深綠色，呼應店名顏色
-    ctx.fillText(name, BOX_CENTER_X, BOX_CENTER_Y);
+    drawNameOnCanvas(ctx, name);
 
     // 產生下載按鈕
     const dataUrl = canvas.toDataURL('image/png');
