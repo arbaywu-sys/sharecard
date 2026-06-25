@@ -30,10 +30,6 @@
     margin-bottom: 20px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
-  .card h2 {
-    font-size: 16px;
-    margin-top: 0;
-  }
   button {
     background: #b5552c;
     color: #fff;
@@ -43,6 +39,9 @@
     font-size: 17px;
     width: 100%;
     margin-top: 8px;
+  }
+  button:disabled {
+    background: #ccc;
   }
   button:active { opacity: 0.8; }
   input[type="text"] {
@@ -75,14 +74,9 @@
     color: #888;
     margin-top: 6px;
   }
-  .note {
+  .loading {
     font-size: 13px;
     color: #b5552c;
-    background: #fdf3ec;
-    border: 1px solid #f0d8c5;
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 16px;
   }
 </style>
 </head>
@@ -91,141 +85,65 @@
   <h1>推薦分享卡產生工具</h1>
   <p class="desc">輸入推薦人姓名，按「產生」，下方會出現可下載的分享卡圖片。</p>
 
-  <div class="note">
-    ⚠️ 條款說明文字目前是暫定內容，正式優惠文案確定後可以再請我改成正確文字。
-  </div>
-
   <div class="card">
     <input type="text" id="nameInput" placeholder="輸入推薦人姓名，例如：王小明">
-    <button onclick="generateCard()">產生</button>
-    <canvas id="cardCanvas" width="900" height="1380"></canvas>
+    <button id="genBtn" onclick="generateCard()" disabled>圖片載入中...</button>
+    <canvas id="cardCanvas" width="1067" height="1599"></canvas>
     <div id="downloadArea"></div>
     <p class="hint">產生後點「下載圖片」即可存到手機，再傳給推薦人。</p>
   </div>
 
 <script>
-  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-    const chars = text.split('');
-    let line = '';
-    let curY = y;
-    for (let i = 0; i < chars.length; i++) {
-      const testLine = line + chars[i];
-      if (ctx.measureText(testLine).width > maxWidth && line.length > 0) {
-        ctx.fillText(line, x, curY);
-        line = chars[i];
-        curY += lineHeight;
-      } else {
-        line = testLine;
-      }
-    }
-    ctx.fillText(line, x, curY);
-    return curY;
+  const bgImage = new Image();
+  let imageReady = false;
+
+  bgImage.onload = function() {
+    imageReady = true;
+    const btn = document.getElementById('genBtn');
+    btn.disabled = false;
+    btn.textContent = '產生';
+    // 先畫一次空白版底圖讓使用者預覽
+    drawBase();
+  };
+  bgImage.onerror = function() {
+    const btn = document.getElementById('genBtn');
+    btn.textContent = '底圖載入失敗，請確認 card-bg.png 是否放在同一資料夾';
+  };
+  bgImage.src = 'card-bg.png';
+
+  function drawBase() {
+    const canvas = document.getElementById('cardCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
   }
 
+  // 空白框的座標範圍（依實際設計圖 1067x1599 量測）
+  const BOX = { left: 201, right: 862, top: 407, bottom: 581 };
+  const BOX_CENTER_X = (BOX.left + BOX.right) / 2;
+  const BOX_CENTER_Y = (BOX.top + BOX.bottom) / 2;
+  const BOX_MAX_WIDTH = (BOX.right - BOX.left) * 0.85; // 留一點邊距，避免貼框
+
   function generateCard() {
+    if (!imageReady) return;
     const name = document.getElementById('nameInput').value.trim() || '____';
     const canvas = document.getElementById('cardCanvas');
     const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
 
-    // 滿版米白底
-    ctx.fillStyle = '#f4f1ea';
-    ctx.fillRect(0, 0, W, H);
+    drawBase();
 
-    // 中央卡片：佔 3/4 版面
-    const cardW = W * 0.8625;
-    const cardH = H * 0.8625;
-    const cardX = (W - cardW) / 2;
-    const cardY = (H - cardH) / 2;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = 'rgba(0,0,0,0.12)';
-    ctx.shadowBlur = 24;
-    ctx.shadowOffsetY = 8;
-    roundRect(ctx, cardX, cardY, cardW, cardH, 24);
-    ctx.fill();
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-
-    // 卡片內邊距
-    const padX = cardX + cardW * 0.1;
-    const contentW = cardW * 0.8;
-    let curY = cardY + cardH * 0.12;
-
-    // 店名
-    ctx.fillStyle = '#2b2b2b';
+    // 自動依文字長度縮小字級，避免長名字超出空白框
+    let fontSize = 60;
     ctx.textAlign = 'center';
-    ctx.font = 'bold 48px sans-serif';
-    ctx.fillText('遠足客製鞋墊', W / 2, curY);
+    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    while (ctx.measureText(name).width > BOX_MAX_WIDTH && fontSize > 24) {
+      fontSize -= 2;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+    }
 
-    // 標語
-    curY += 50;
-    ctx.font = '24px sans-serif';
-    ctx.fillStyle = '#777';
-    ctx.fillText('客製鞋墊，為您的每一步量身打造', W / 2, curY);
-
-    // 分隔線
-    curY += 50;
-    ctx.strokeStyle = '#e3ddd0';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(padX, curY);
-    ctx.lineTo(padX + contentW, curY);
-    ctx.stroke();
-
-    // 推薦人姓名
-    curY += 80;
-    ctx.font = '26px sans-serif';
-    ctx.fillStyle = '#999';
-    ctx.fillText('推薦人', W / 2, curY);
-
-    curY += 60;
-    ctx.font = 'bold 56px sans-serif';
-    ctx.fillStyle = '#b5552c';
-    ctx.fillText(name, W / 2, curY);
-
-    // 分隔線
-    curY += 50;
-    ctx.strokeStyle = '#e3ddd0';
-    ctx.beginPath();
-    ctx.moveTo(padX, curY);
-    ctx.lineTo(padX + contentW, curY);
-    ctx.stroke();
-
-    // 條款說明（暫定文字）
-    curY += 50;
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillStyle = '#2b2b2b';
-    ctx.fillText('【好友推薦活動】', padX, curY);
-
-    curY += 44;
-    ctx.font = '22px sans-serif';
-    ctx.fillStyle = '#444';
-    ctx.fillText('經本卡推薦之朋友訂購客製化鞋墊：', padX, curY);
-
-    curY += 36;
-    ctx.fillText('　　推薦人獲得LINE集點卡1點（可折抵消費$50）', padX, curY);
-
-    curY += 36;
-    ctx.fillText('　　被推薦人獲贈足弓拖鞋或足弓襪一雙（擇1）', padX, curY);
-
-    curY += 46;
-    ctx.fillText('・點數期限為20個月', padX, curY);
-
-    curY += 36;
-    ctx.fillText('・活動內容如有調整，依店家最新公告為準', padX, curY);
-
-    // 店家資訊
-    curY += 60;
-    ctx.textAlign = 'center';
-    ctx.font = '20px sans-serif';
-    ctx.fillStyle = '#888';
-    ctx.fillText('柳營店｜柳營區中埕里中興街80號', W / 2, curY);
-    curY += 32;
-    ctx.fillText('文成店｜北區文成二路218號', W / 2, curY);
+    ctx.fillStyle = '#173821'; // 深綠色，呼應店名顏色
+    ctx.fillText(name, BOX_CENTER_X, BOX_CENTER_Y);
 
     // 產生下載按鈕
     const dataUrl = canvas.toDataURL('image/png');
@@ -237,20 +155,6 @@
     link.className = 'download-link';
     link.textContent = '下載圖片';
     downloadArea.appendChild(link);
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
   }
 </script>
 
