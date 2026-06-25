@@ -85,6 +85,13 @@
     font-size: 13px;
     color: #b5552c;
   }
+  #resultImg {
+    width: 100%;
+    max-width: 420px;
+    display: block;
+    margin: 12px auto 0;
+    border-radius: 8px;
+  }
 </style>
 </head>
 <body>
@@ -98,7 +105,7 @@
     <input type="text" id="nameInput" placeholder="輸入推薦人姓名，例如：王小明">
     <button id="genBtn" onclick="generateCard()" disabled>圖片載入中...</button>
     <canvas id="cardCanvas" width="1067" height="1599" style="display:none;"></canvas>
-    <img id="resultImg" style="width:100%; border-radius:8px; margin-top:12px; display:none;">
+    <img id="resultImg" style="display:none;">
     <div id="downloadArea"></div>
     <p class="hint" id="saveHint" style="display:none;">📱 長按上方圖片 → 選「儲存圖像」即可存到手機相簿（iPhone適用）。</p>
     <p class="hint">或點下方「下載圖片」按鈕下載（Android / 電腦適用）。</p>
@@ -190,10 +197,10 @@
     ctx.textBaseline = 'middle';
 
     // 柔和陰影（輕微立體感，避免太重）
-    ctx.shadowColor = 'rgba(70,45,15,0.45)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 4;
+    ctx.shadowColor = 'rgba(60,38,12,0.55)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 5;
     ctx.fillStyle = '#8B652E'; // 古銅金
 
     let x = BOX_CENTER_X - m.total / 2;
