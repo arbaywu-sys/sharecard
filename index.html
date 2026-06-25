@@ -190,10 +190,10 @@
     ctx.textBaseline = 'middle';
 
     // 柔和陰影（輕微立體感，避免太重）
-    ctx.shadowColor = 'rgba(80,55,25,0.35)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 2;
+    ctx.shadowColor = 'rgba(70,45,15,0.45)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#8B652E'; // 古銅金
 
     let x = BOX_CENTER_X - m.total / 2;
@@ -216,7 +216,9 @@
     const ctx = canvas.getContext('2d');
 
     drawBase();
-    drawNameOnCanvas(ctx, name);
+    drawNameOnCanvas(ctx, name); // 第一次：暖機用，確保字體真正切換過來
+    drawBase();
+    drawNameOnCanvas(ctx, name); // 第二次：才是真正顯示/下載的結果
 
     canvas.toBlob(function(blob) {
       const url = URL.createObjectURL(blob);
