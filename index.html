@@ -89,15 +89,19 @@
 </head>
 <body>
 
+  <div style="position:absolute; left:-9999px; top:-9999px; font-family:'Iansui'; font-size:10px;">暖機文字Warmup</div>
+
   <h1>推薦分享卡產生工具</h1>
   <p class="desc">輸入推薦人姓名，按「產生」，下方會出現可下載的分享卡圖片。</p>
 
   <div class="card">
     <input type="text" id="nameInput" placeholder="輸入推薦人姓名，例如：王小明">
     <button id="genBtn" onclick="generateCard()" disabled>圖片載入中...</button>
-    <canvas id="cardCanvas" width="1067" height="1599"></canvas>
+    <canvas id="cardCanvas" width="1067" height="1599" style="display:none;"></canvas>
+    <img id="resultImg" style="width:100%; border-radius:8px; margin-top:12px; display:none;">
     <div id="downloadArea"></div>
-    <p class="hint">產生後點「下載圖片」即可存到手機，再傳給推薦人。</p>
+    <p class="hint" id="saveHint" style="display:none;">📱 長按上方圖片 → 選「儲存圖像」即可存到手機相簿（iPhone適用）。</p>
+    <p class="hint">或點下方「下載圖片」按鈕下載（Android / 電腦適用）。</p>
   </div>
 
 <script>
@@ -107,6 +111,12 @@
 
   function maybeEnableButton() {
     if (imageReady && fontReady) {
+      // 暖機：強迫Canvas先用芫荽體畫一次文字，避開「第一次量字寬不準」的瀏覽器bug
+      const canvas = document.getElementById('cardCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = '112px "Iansui"';
+      ctx.fillText('暖', -9999, -9999);
+
       const btn = document.getElementById('genBtn');
       btn.disabled = false;
       btn.textContent = '產生';
@@ -208,16 +218,25 @@
     drawBase();
     drawNameOnCanvas(ctx, name);
 
-    // 產生下載按鈕
-    const dataUrl = canvas.toDataURL('image/png');
-    const downloadArea = document.getElementById('downloadArea');
-    downloadArea.innerHTML = '';
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = '推薦卡_' + name + '.png';
-    link.className = 'download-link';
-    link.textContent = '下載圖片';
-    downloadArea.appendChild(link);
+    canvas.toBlob(function(blob) {
+      const url = URL.createObjectURL(blob);
+
+      // 顯示圖片本身（iPhone可長按這張圖儲存，相容性最好）
+      const img = document.getElementById('resultImg');
+      img.src = url;
+      img.style.display = 'block';
+      document.getElementById('saveHint').style.display = 'block';
+
+      // 同時提供下載按鈕（Android / 桌機適用）
+      const downloadArea = document.getElementById('downloadArea');
+      downloadArea.innerHTML = '';
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = '推薦卡_' + name + '.png';
+      link.className = 'download-link';
+      link.textContent = '下載圖片';
+      downloadArea.appendChild(link);
+    }, 'image/png');
   }
 </script>
 
