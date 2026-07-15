@@ -160,11 +160,11 @@
   }
 
   // 空白框的座標範圍（依實際設計圖 1067x1599 量測）
-  const BOX = { left: 201, right: 862, top: 407, bottom: 581 };
+  const BOX = { left: 192, right: 872, top: 410, bottom: 610 };
   const BOX_CENTER_X = (BOX.left + BOX.right) / 2;
   const BOX_CENTER_Y = (BOX.top + BOX.bottom) / 2;
   const BOX_MAX_WIDTH = (BOX.right - BOX.left) * 0.78;   // 寬度上限
-  const BOX_MAX_HALF_HEIGHT = 52;                         // 高度上限，避免壓到底圖右下角「Excursion Orthotix」字樣
+  const BOX_MAX_HALF_HEIGHT = 55;                         // 高度上限，避免壓到底圖右下角「Excursion Orthotix」字樣
 
   // 字體後備順序（防呆）：芫荽體沒有的字，自動換下一個字體顯示，不會出現缺字方框
   const FONT_STACK = '"Iansui", "PingFang TC", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif';
